@@ -1,0 +1,17 @@
+[package]
+name = "pochta"
+version = "0.1.0"
+edition = "2018"
+description = "Addressable channel registry"
+readme = "README.md"
+repository = "https://github.com/DoumanAsh/pochta"
+license = "BSL-1.0"
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+    "README.md"
+]
+
+[dependencies.tokio]
+version = "1"
+features = ["sync"]
