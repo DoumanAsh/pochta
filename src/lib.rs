@@ -13,18 +13,35 @@ use core::hash::Hash;
 use std::collections::HashMap;
 
 ///Describes sending error
-pub trait SendError {
-    ///Indicates failure reason is due to channel being closed
-    fn is_closed(&self) -> bool;
+pub enum SendErrorKind {
+    ///Capacity overflow
+    Full,
+    ///Remote end is closed
+    Closed
+}
+
+impl SendErrorKind {
+    ///Returns `true` if kind indicates closed channel
+    pub const fn is_closed(&self) -> bool {
+        match self {
+            SendErrorKind::Closed => true,
+            SendErrorKind::Full => false,
+        }
+    }
+}
+
+///Send error
+pub struct SendError<T> {
+    ///Error kind
+    pub kind: SendErrorKind,
+    ///Message, that could not be delivered
+    pub message: T
 }
 
 ///Channel sender
 pub trait Sender<T: Send> {
-    ///Send error
-    type Error: SendError;
-
     ///Send method
-    fn send(&self, value: T) -> impl Future<Output=Result<(), Self::Error>> + Send;
+    fn send(&self, value: T) -> impl Future<Output=Result<(), SendError<T>>> + Send;
 }
 
 ///Channel registry
@@ -35,7 +52,7 @@ pub struct Registry<K, T: Send, S: Sender<T>> {
 
 impl<T: Send, K: PartialEq + Eq + Hash, S: Sender<T>> Registry<K, T, S> {
     ///Sends value over channel by index `key`, returning `None` if no channel is found
-    pub async fn send_to<Q: Hash + Eq + ?Sized>(&self, key: &Q, value: T) -> Option<Result<(), S::Error>> where K: Borrow<Q> {
+    pub async fn send_to<Q: Hash + Eq + ?Sized>(&self, key: &Q, value: T) -> Option<Result<(), SendError<T>>> where K: Borrow<Q> {
         let result = if let Some(channel) = self.inner.read().await.get(key) {
             channel.send(value).await
         } else {
@@ -43,7 +60,7 @@ impl<T: Send, K: PartialEq + Eq + Hash, S: Sender<T>> Registry<K, T, S> {
         };
 
         match result {
-            Err(error) if error.is_closed() => {
+            Err(error) if error.kind.is_closed() => {
                 let _ = self.inner.write().await.remove(key);
                 Some(Err(error))
             }
