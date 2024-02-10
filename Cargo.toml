@@ -11,7 +11,3 @@ include = [
     "Cargo.toml",
     "README.md"
 ]
-
-[dependencies.tokio]
-version = "1"
-features = ["sync"]
