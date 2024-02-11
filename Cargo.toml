@@ -11,3 +11,4 @@ include = [
     "Cargo.toml",
     "README.md"
 ]
+categories = ["asynchronous", "concurrency"]
