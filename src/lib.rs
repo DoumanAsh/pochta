@@ -1,5 +1,4 @@
 //! Addressable channel registry
-//!
 
 #![warn(missing_docs)]
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
@@ -8,7 +7,7 @@ mod waker;
 
 use core::{fmt, task};
 use core::pin::Pin;
-use core::future::{self, Future};
+use core::future::Future;
 use core::hash::Hash;
 use core::mem::ManuallyDrop;
 use std::sync::mpsc;
@@ -18,8 +17,10 @@ use std::collections::{HashMap, hash_map};
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 ///Describes sending error
 pub enum SendErrorKind {
-    ///Capacity overflow
-    Full,
+    //For now do not allow bounded channels to avoid dealing with back-pressure
+    //Once strategy found, consider implementing it
+    /////Capacity overflow
+    //Full,
     ///Remote end is closed
     Closed
 }
@@ -29,7 +30,7 @@ impl SendErrorKind {
     pub const fn is_closed(&self) -> bool {
         match self {
             SendErrorKind::Closed => true,
-            SendErrorKind::Full => false,
+            //SendErrorKind::Full => false,
         }
     }
 }
@@ -60,15 +61,16 @@ impl<T> std::error::Error for SendError<T> {}
 
 ///Channel sender
 pub trait Sender<T: Send> {
-    #[inline(always)]
-    ///Send method
-    ///
-    ///Defaults to calling `try_send`
-    fn send(&self, value: T) -> impl Future<Output=Result<(), SendError<T>>> + Send {
-        future::ready(self.try_send(value))
-    }
+    //#[inline(always)]
+    /////Send method
+    /////
+    /////Defaults to calling `try_send`
+    //fn send(&self, value: T) -> impl Future<Output=Result<(), SendError<T>>> + Send {
+    //    future::ready(self.try_send(value))
+    //}
 
-    ///Block-free version of `send`
+    ///Attempts to deliver message to remote end, and is expected to be successful as long as
+    ///remote end has not shut down.
     fn try_send(&self, value: T) -> Result<(), SendError<T>>;
 }
 
@@ -178,9 +180,9 @@ impl<K: PartialEq + Eq + Hash, T: Send, S: Sender<T>> Registry<K, T, S> {
                                 SendErrorKind::Closed => {
                                     entry.remove();
                                 },
-                                SendErrorKind::Full => {
-                                    todo!();
-                                }
+                                //SendErrorKind::Full => {
+                                //    todo!();
+                                //}
                             }
                         },
                         hash_map::Entry::Vacant(_) => continue,
