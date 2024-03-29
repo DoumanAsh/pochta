@@ -231,8 +231,8 @@ impl<K: PartialEq + Eq + Hash, T: Send, S: Sender<T>> Channel<K, T, S> {
     #[inline(always)]
     ///Subscribes provided `channel` with specified `key`, potentially removing existing channel.
     ///
-    ///Returns `true` if registry is still running
-    ///Returns `false` if message ignored due to registry not running
+    ///Returns `Ok(())` if registry is still running
+    ///Returns `Err(Cancelled)` if message ignored due to registry not running
     pub fn subscribe(&self, key: K, channel: S) -> Result<(), Cancelled> {
         self.send(Message::Subscribe(key, channel))
     }
@@ -240,8 +240,8 @@ impl<K: PartialEq + Eq + Hash, T: Send, S: Sender<T>> Channel<K, T, S> {
     #[inline(always)]
     ///Removes `channel` with specified `key` from registry
     ///
-    ///Returns `true` if registry is still running
-    ///Returns `false` if message ignored due to registry not running
+    ///Returns `Ok(())` if registry is still running
+    ///Returns `Err(Cancelled)` if message ignored due to registry not running
     pub fn unsubscribe(&self, key: K) -> Result<(), Cancelled> {
         self.send(Message::Unsubscribe(key))
     }
@@ -249,10 +249,20 @@ impl<K: PartialEq + Eq + Hash, T: Send, S: Sender<T>> Channel<K, T, S> {
     #[inline(always)]
     ///Sends message `msg` over to channel registered by `key`.
     ///
-    ///Returns `true` if registry is still running
-    ///Returns `false` if message ignored due to registry not running
+    ///Returns `Ok(())` if registry is still running
+    ///Returns `Err(Cancelled)` if message ignored due to registry not running
     pub fn send_to(&self, key: K, msg: T) -> Result<(), Cancelled> {
         self.send(Message::Msg(key, msg))
+    }
+}
+
+impl<K: PartialEq + Eq + Hash, T: Send, S: Sender<T>> Clone for Channel<K, T, S> {
+    #[inline(always)]
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state.clone(),
+            channel: self.channel.clone(),
+        }
     }
 }
 

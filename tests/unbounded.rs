@@ -24,6 +24,7 @@ fn send_and_unsubscribe() {
     let message = recv.recv_timeout(time::Duration::from_millis(100));
     assert_eq!(message, Err(mpsc::RecvTimeoutError::Disconnected));
 
+    drop(channel.clone());
     drop(channel);
 
     worker.join().expect("Finish successfully");
