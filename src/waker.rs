@@ -27,7 +27,7 @@ pub(crate) mod thread {
     use std::thread::Thread;
     use core::{task, mem};
 
-    const VTABLE: task::RawWakerVTable = task::RawWakerVTable::new(clone, action, action, on_drop);
+    const VTABLE: task::RawWakerVTable = task::RawWakerVTable::new(clone, wake, wake_by_ref, on_drop);
 
     unsafe fn on_drop(thread: *const ()) {
         let thread: Thread = mem::transmute(thread);
@@ -41,9 +41,16 @@ pub(crate) mod thread {
         task::RawWaker::new(new_ptr, &VTABLE)
     }
 
-    unsafe fn action(thread: *const ()) {
+    unsafe fn wake(thread: *const ()) {
         let thread: Thread = mem::transmute(thread);
         thread.unpark();
+    }
+
+    unsafe fn wake_by_ref(thread: *const ()) {
+        let thread: Thread = mem::transmute(thread);
+        thread.unpark();
+        //wake_by_ref should not consume self
+        mem::forget(thread);
     }
 
     #[inline(always)]
