@@ -49,7 +49,7 @@ pub(crate) mod thread {
     }
 
     unsafe fn wake_by_ref(thread: *const ()) {
-        let thread = &*(thread as *const Box<Thread>);
+        let thread = &*(thread as *const Thread);
         thread.unpark();
     }
 
